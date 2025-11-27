@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>Talkscape</title>
+
+  <!-- 로컬 폰트: IPAMincho-Regular.ttf (index.html 과 같은 폴더) -->
+  <style>
+    @font-face {
+      font-family: "IPAMincho";
+      src: url("IPAMincho-Regular.ttf") format("truetype");
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: "IPAMincho", system-ui, -apple-system, BlinkMacSystemFont, serif;
+    }
+
+    .layout {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+    }
+
+    /* ===== LEFT PANE ===== */
+    .left-pane {
+      flex: 0 0 40%;
+      max-width: 33%;
+      min-width: 280px;
+      background: #000;
+      color: #f5f5f5;
+      box-sizing: border-box;
+      padding: 24px 36px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .left-inner {
+      display: flex;
+      gap: 25px;
+      align-items: flex-start;
+    }
+
+    .left-list-col {
+      flex: 0 0 140px;
+    }
+
+    .left-text-col {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .site-label {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #9a9a9a;
+      margin: 5 0 6px;
+    }
+
+    .project-title {
+      font-size: 34px;
+      letter-spacing: 0.01em;
+      margin: 0 0 12px;
+      color: #ffffff;
+    }
+
+    .intro-copy {
+      font-size: 13px;
+      line-height: 1.2;
+      margin: -2 0 66px;
+      white-space: pre-line;
+      color: #dcdcdc;
+      margin-bottom: 120px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 20px 0 4px;
+      color: #a0a0a0;
+    }
+
+    .credits {
+      font-size: 11px;
+      line-height: 1.2;
+      margin: 0;
+      white-space: pre-line;
+      color: #b5b5b5;
+    }
+
+    .track-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      font-size: 13px;
+    }
+
+    .track-item {
+      position: relative;
+      cursor: pointer;
+      padding: 8px 0;
+      padding-left: 30px;
+      color: #555555;
+      transition: color 0.18s ease, transform 0.18s ease;
+    }
+
+    .track-item-label {
+      display: block;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+
+    .track-item-number {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid #666666;
+      font-size: 11px;
+      line-height: 22px;
+      text-align: center;
+      color: #777777;
+      box-sizing: border-box;
+    }
+
+    .track-item.active {
+      color: #ffffff;
+      transform: translateX(1px);
+    }
+
+    .track-item.active .track-item-number {
+      background: #f5f5f5;
+      border-color: #f5f5f5;
+      color: #000000;
+      font-weight: 700;
+    }
+
+    .track-item:hover {
+      color: #d0d0d0;
+    }
+
+    /* ===== RIGHT PANE (VISUAL) ===== */
+    .right-pane {
+      flex: 1;
+      position: relative;
+      background: #000;
+      overflow: hidden;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      display: block;
+    }
+
+    .hud {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      color: #ddd;
+      font: 11px/1.4 system-ui, "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, sans-serif;
+      pointer-events: none;
+    }
+    .hud b { color: #fff; }
+  </style>
+</head>
+<body>
+  <!-- 오디오 소스 -->
+  <audio id="snd-subway"  src="subway.mp3"></audio>
+  <audio id="snd-truck"   src="truck.mp3"></audio>
+  <audio id="snd-traffic" src="traffic.mp3"></audio>
+
+  <div class="layout">
+    <!-- LEFT -->
+    <section class="left-pane">
+      <div class="left-inner">
+        <!-- 왼쪽: 리스트 -->
+        <div class="left-list-col">
+          <ol class="track-list">
+            <li class="track-item" data-track="subway">
+              <span class="track-item-number">1</span>
+              <span class="track-item-label">Korean subway announcement</span>
+            </li>
+            <li class="track-item" data-track="truck">
+              <span class="track-item-number">2</span>
+              <span class="track-item-label">Sunday fruit truck calls</span>
+            </li>
+            <li class="track-item" data-track="traffic">
+              <span class="track-item-number">3</span>
+              <span class="track-item-label">Traffic signal beeps</span>
+            </li>
+            <li class="track-item" data-track="t4">
+              <span class="track-item-number">4</span>
+              <span class="track-item-label">Phone call<br>from mom</span>
+            </li>
+            <li class="track-item" data-track="t5">
+              <span class="track-item-number">5</span>
+              <span class="track-item-label">Conversation with a boss</span>
+            </li>
+            <li class="track-item" data-track="t6">
+              <span class="track-item-number">6</span>
+              <span class="track-item-label">Children’s laughter</span>
+            </li>
+            <li class="track-item" data-track="t7">
+              <span class="track-item-number">7</span>
+              <span class="track-item-label">Construction noise</span>
+            </li>
+            <li class="track-item" data-track="t8">
+              <span class="track-item-number">8</span>
+              <span class="track-item-label">Casual chat with a friend</span>
+            </li>
+          </ol>
+        </div>
+
+        <!-- 오른쪽: 프로젝트 설명 -->
+        <div class="left-text-col">
+          <p class="site-label">TALK WITH URBAN LANDSCAPE</p>
+          <h1 class="project-title">TALKSCAPE</h1>
+
+          <p class="intro-copy">
+Talkscape is an archive of voices that drift through the Seoul City:
+announcements in underground tunnels, fruit trucks circling a quiet street,
+phone calls that leak out of open windows.
+
+Each sound is translated into a field of vertical lines.
+The waveform reshapes the photograph of its scene, so that the image
+only appears when the city is speaking.
+
+By listening to these everyday layers at once, the viewer is invited
+to read the urban landscape not only with their eyes, but through
+the rhythm, distance and warmth of each voice.
+          </p>
+
+          <p class="section-label">HOW TO</p>
+          <p class="credits">
+Select from the list to visually experience the sounds of the city.You can also press multiple sounds at once to create your own urban soundscape.
+          </p>
+
+          <p class="section-label">CREDITS</p>
+          <p class="credits">
+Recording · Editing · Visual system<br>— Talkscape project
+Web implementation<br>— HTML / Canvas · Web Audio API
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="right-pane" id="right-pane">
+      <canvas id="cv"></canvas>
+      <div class="hud"></div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const cvs = document.getElementById('cv');
+      const ctx = cvs.getContext('2d', { alpha: false });
+      const rightPane = document.getElementById('right-pane');
+
+      const sndSubway  = document.getElementById('snd-subway');
+      const sndTruck   = document.getElementById('snd-truck');
+      const sndTraffic = document.getElementById('snd-traffic');
+
+      // ===== 캔버스 리사이즈 (오른쪽 섹션 기준) =====
+      let W = 0, H = 0, DPR = Math.min(2, window.devicePixelRatio || 1);
+      function resize() {
+        const rect = rightPane.getBoundingClientRect();
+        W = cvs.width  = Math.floor(rect.width  * DPR);
+        H = cvs.height = Math.floor(rect.height * DPR);
+        cvs.style.width  = rect.width  + 'px';
+        cvs.style.height = rect.height + 'px';
+      }
+      window.addEventListener('resize', resize, { passive: true });
+      resize();
+
+      // ===== 이미지 에셋 =====
+      const imgBG      = new Image(); imgBG.src      = 'bg.png';
+      const imgSub     = new Image(); imgSub.src     = 'subway.jpeg';
+      const imgTruck   = new Image(); imgTruck.src   = 'truck.png';
+      const imgTraffic = new Image(); imgTraffic.src = 'traffic.jpg';
+
+      let assets = 0;
+      let fieldSub     = null;
+      let fieldTruck   = null;
+      let fieldTraffic = null;
+
+      [imgBG, imgSub, imgTruck, imgTraffic].forEach(im => {
+        im.onload  = onAsset;
+        im.onerror = onAsset;
+      });
+
+      function onAsset() {
+        assets++;
+        if (assets === 4) {
+          try {
+            fieldSub     = buildBrightnessField(imgSub);
+            fieldTruck   = buildBrightnessField(imgTruck);
+            fieldTraffic = buildBrightnessField(imgTraffic);
+          } catch (e) {
+            console.warn('brightness field error, fallback to pure waveform', e);
+            fieldSub = fieldTruck = fieldTraffic = null;
+          }
+          start();
+        }
+      }
+
+      // ===== 유틸 =====
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+      function drawBackgroundCover(g, image) {
+        const iw = image.width, ih = image.height;
+        const cw = W, ch = H;
+        const ir = iw / ih, cr = cw / ch;
+        let w, h, x, y;
+        if (cr > ir) {
+          w = cw; h = cw / ir; x = 0; y = (ch - h) / 2;
+        } else {
+          h = ch; w = ch * ir; x = (cw - w) / 2; y = 0;
+        }
+        g.drawImage(image, x, y, w, h);
+      }
+
+      // ===== 이미지 → 밝기 필드 (오른쪽 섹션 비율로 cover) =====
+      function buildBrightnessField(img) {
+        const aspect = (rightPane.clientWidth || window.innerWidth * 0.6) /
+                       (rightPane.clientHeight || window.innerHeight);
+        const Wm = 180;
+        const Hm = Math.round(Wm / aspect);
+
+        const c = document.createElement('canvas');
+        c.width  = Wm;
+        c.height = Hm;
+        const g = c.getContext('2d');
+
+        const ir = img.width / img.height;
+        const cr = Wm / Hm;
+        let dw, dh, dx, dy;
+        if (cr > ir) {
+          dw = Wm;
+          dh = Wm / ir;
+          dx = 0;
+          dy = (Hm - dh) / 2;
+        } else {
+          dh = Hm;
+          dw = Hm * ir;
+          dx = (Wm - dw) / 2;
+          dy = 0;
+        }
+
+        g.clearRect(0, 0, Wm, Hm);
+        g.drawImage(img, dx, dy, dw, dh);
+
+        const data = g.getImageData(0, 0, Wm, Hm).data;
+        const out  = new Float32Array(Wm * Hm);
+
+        let minD = 1, maxD = 0;
+        for (let y = 0; y < Hm; y++) {
+          for (let x = 0; x < Wm; x++) {
+            const i = (y * Wm + x) * 4;
+            const r = data[i], gc = data[i+1], b = data[i+2];
+            const gray = (r + gc + b) / (3 * 255);
+            let dark = 1 - gray;
+            dark = Math.pow(dark, 1.6);
+            out[y * Wm + x] = dark;
+            if (dark < minD) minD = dark;
+            if (dark > maxD) maxD = dark;
+          }
+        }
+        const range = maxD - minD || 1;
+        for (let i = 0; i < out.length; i++) {
+          out[i] = (out[i] - minD) / range;
+        }
+        return { w: Wm, h: Hm, data: out };
+      }
+
+      function sampleField(field, nx, ny) {
+        if (!field) return 0;
+        const { w, h, data } = field;
+        const x = (clamp(nx, 0, 0.9999) * w) | 0;
+        const y = (clamp(ny, 0, 0.9999) * h) | 0;
+        return data[y * w + x];
+      }
+
+      // ===== Web Audio =====
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      let audioCtx = null;
+
+      let analyserSub     = null;
+      let analyserTruck   = null;
+      let analyserTraffic = null;
+
+      let dataSub     = null;
+      let dataTruck   = null;
+      let dataTraffic = null;
+
+      let bufferLenSub = 0, bufferLenTruck = 0, bufferLenTraffic = 0;
+
+      function initAudio() {
+        if (!AudioCtx) return;
+        if (audioCtx) return;
+
+        audioCtx = new AudioCtx();
+
+        analyserSub     = audioCtx.createAnalyser();
+        analyserTruck   = audioCtx.createAnalyser();
+        analyserTraffic = audioCtx.createAnalyser();
+
+        analyserSub.fftSize     = 1024;
+        analyserTruck.fftSize   = 1024;
+        analyserTraffic.fftSize = 1024;
+
+        bufferLenSub     = analyserSub.frequencyBinCount;
+        bufferLenTruck   = analyserTruck.frequencyBinCount;
+        bufferLenTraffic = analyserTraffic.frequencyBinCount;
+
+        dataSub     = new Uint8Array(bufferLenSub);
+        dataTruck   = new Uint8Array(bufferLenTruck);
+        dataTraffic = new Uint8Array(bufferLenTraffic);
+
+        const srcSub     = audioCtx.createMediaElementSource(sndSubway);
+        const srcTruck   = audioCtx.createMediaElementSource(sndTruck);
+        const srcTraffic = audioCtx.createMediaElementSource(sndTraffic);
+
+        srcSub.connect(analyserSub);
+        analyserSub.connect(audioCtx.destination);
+
+        srcTruck.connect(analyserTruck);
+        analyserTruck.connect(audioCtx.destination);
+
+        srcTraffic.connect(analyserTraffic);
+        analyserTraffic.connect(audioCtx.destination);
+      }
+
+      function ensureAudioContext() {
+        if (!AudioCtx) return;
+        if (!audioCtx) initAudio();
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+
+      // ===== 파형 + line-halftone =====
+      function drawWaveform() {
+        if (!audioCtx) return;
+
+        if (analyserSub     && dataSub)     analyserSub.getByteFrequencyData(dataSub);
+        if (analyserTruck   && dataTruck)   analyserTruck.getByteFrequencyData(dataTruck);
+        if (analyserTraffic && dataTraffic) analyserTraffic.getByteFrequencyData(dataTraffic);
+
+        const barCount  = Math.max(120, Math.floor(W / (3 * DPR)));
+        const stepX     = W / barCount;
+        const maxLen    = H * 0.94;
+        const minLen    = H * 0.18;
+        const segCount  = 48;
+        const threshold = 0.02;
+
+        // SUBWAY: 위→아래, 좌→우, 청록
+        if (fieldSub && analyserSub && dataSub) {
+          const stepSub = Math.max(1, Math.floor(bufferLenSub / barCount));
+          ctx.save();
+          ctx.strokeStyle = '#00FFFB';
+          ctx.fillStyle   = '#00FFFB';
+
+          for (let i = 0; i < barCount; i++) {
+            const idx    = Math.min(bufferLenSub - 1, i * stepSub);
+            const vAudio = dataSub[idx] / 255;
+            if (vAudio < threshold) continue;
+
+            const baseLen = minLen + (maxLen - minLen) * vAudio;
+            const x       = i * stepX;
+            const baseY   = 0;
+            const endY    = baseY + baseLen;
+
+            ctx.globalAlpha = 0.9;
+            ctx.lineWidth   = 1 * DPR;
+            ctx.beginPath();
+            ctx.moveTo(x, baseY);
+            ctx.lineTo(x, endY);
+            ctx.stroke();
+
+            const capW = 4 * DPR, capH = 6 * DPR;
+            ctx.fillRect(x - capW / 2, endY - capH / 2, capW, capH);
+
+            const segLen = baseLen / segCount;
+            for (let s = 0; s < segCount; s++) {
+              const cy = baseY + (s + 0.5) * segLen;
+              const ny = clamp(cy / H, 0, 1);
+              const nx = clamp(i / (barCount - 1 || 1), 0, 1);
+              const dark = sampleField(fieldSub, nx, ny);
+              if (dark <= 0.08) continue;
+
+              const thickness = (0.8 + 2.5 * dark) * DPR;
+              const hSeg      = segLen * (0.4 + 0.8 * dark);
+              const alpha     = 0.15 + 0.7 * dark;
+
+              ctx.globalAlpha = alpha;
+              ctx.fillRect(x - thickness / 2, cy - hSeg / 2, thickness, hSeg);
+            }
+          }
+          ctx.restore();
+          ctx.globalAlpha = 1;
+        }
+
+        // TRUCK: 아래→위, 우→좌, 핑크
+        if (fieldTruck && analyserTruck && dataTruck) {
+          const stepTruck = Math.max(1, Math.floor(bufferLenTruck / barCount));
+          ctx.save();
+          ctx.strokeStyle = '#FF00DD';
+          ctx.fillStyle   = '#FF00DD';
+
+          for (let i = 0; i < barCount; i++) {
+            const idx    = Math.min(bufferLenTruck - 1, i * stepTruck);
+            const vAudio = dataTruck[idx] / 255;
+            if (vAudio < threshold) continue;
+
+            const baseLen = minLen + (maxLen - minLen) * vAudio;
+            const x       = W - i * stepX;
+            const baseY   = H;
+            const endY    = baseY - baseLen;
+
+            ctx.globalAlpha = 0.9;
+            ctx.lineWidth   = 1 * DPR;
+            ctx.beginPath();
+            ctx.moveTo(x, baseY);
+            ctx.lineTo(x, endY);
+            ctx.stroke();
+
+            const capW = 4 * DPR, capH = 6 * DPR;
+            ctx.fillRect(x - capW / 2, endY - capH / 2, capW, capH);
+
+            const segLen = baseLen / segCount;
+            for (let s = 0; s < segCount; s++) {
+              const cy = baseY - (s + 0.5) * segLen;
+              const ny = clamp(cy / H, 0, 1);
+              const nx = clamp(i / (barCount - 1 || 1), 0, 1);
+              const dark = sampleField(fieldTruck, nx, ny);
+              if (dark <= 0.08) continue;
+
+              const thickness = (0.8 + 2.5 * dark) * DPR;
+              const hSeg      = segLen * (0.4 + 0.8 * dark);
+              const alpha     = 0.15 + 0.7 * dark;
+
+              ctx.globalAlpha = alpha;
+              ctx.fillRect(x - thickness / 2, cy - hSeg / 2, thickness, hSeg);
+            }
+          }
+          ctx.restore();
+          ctx.globalAlpha = 1;
+        }
+
+        // TRAFFIC: 중앙 기준 위/아래 대칭, 좌→우, 파랑(#1947FF)
+        if (fieldTraffic && analyserTraffic && dataTraffic) {
+          const stepTraffic = Math.max(1, Math.floor(bufferLenTraffic / barCount));
+          ctx.save();
+          ctx.strokeStyle = '#1947FF';
+          ctx.fillStyle   = '#1947FF';
+
+          const midY = H * 0.5;
+          const ampMax = H * 0.4;
+          const ampMin = H * 0.08;
+
+          for (let i = 0; i < barCount; i++) {
+            const idx    = Math.min(bufferLenTraffic - 1, i * stepTraffic);
+            const vAudio = dataTraffic[idx] / 255;
+            if (vAudio < threshold) continue;
+
+            const amp = ampMin + (ampMax - ampMin) * vAudio; // 위·아래로 뻗는 반쪽 길이
+            const topY    = midY - amp;
+            const bottomY = midY + amp;
+
+            const x = i * stepX;
+
+            // 중심 라인 기준 양쪽으로 bpm 느낌
+            ctx.globalAlpha = 0.9;
+            ctx.lineWidth   = 1 * DPR;
+            ctx.beginPath();
+            ctx.moveTo(x, topY);
+            ctx.lineTo(x, bottomY);
+            ctx.stroke();
+
+            const capW = 4 * DPR, capH = 6 * DPR;
+            ctx.fillRect(x - capW / 2, topY - capH / 2, capW, capH);
+            ctx.fillRect(x - capW / 2, bottomY - capH / 2, capW, capH);
+
+            const totalLen = bottomY - topY;
+            const segLen   = totalLen / segCount;
+
+            for (let s = 0; s < segCount; s++) {
+              const cy = topY + (s + 0.5) * segLen;
+              const ny = clamp(cy / H, 0, 1);
+              const nx = clamp(i / (barCount - 1 || 1), 0, 1);
+              const dark = sampleField(fieldTraffic, nx, ny);
+              if (dark <= 0.08) continue;
+
+              const thickness = (0.8 + 2.5 * dark) * DPR;
+              const hSeg      = segLen * (0.4 + 0.8 * dark);
+              const alpha     = 0.18 + 0.75 * dark;
+
+              ctx.globalAlpha = alpha;
+              ctx.fillRect(x - thickness / 2, cy - hSeg / 2, thickness, hSeg);
+            }
+          }
+
+          ctx.restore();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // ===== 메인 루프 =====
+      let last = 0;
+      function start() {
+        last = performance.now();
+        loop(last);
+      }
+
+      function loop(now) {
+        requestAnimationFrame(loop);
+        const dt = (now - last) / 1000;
+        last = now;
+
+        drawBackgroundCover(ctx, imgBG);
+        drawWaveform();
+
+        // 비네트
+        const g = ctx.createRadialGradient(
+          W * 0.5, H * 0.92, 0,
+          W * 0.5, H * 0.92, Math.max(W, H) * 0.75
+        );
+        g.addColorStop(0, 'rgba(0,0,0,0)');
+        g.addColorStop(1, 'rgba(0,0,0,0.55)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      // ===== 좌측 리스트 클릭 → 사운드 토글 =====
+      const trackItems = Array.from(document.querySelectorAll('.track-item'));
+
+      const tracks = {
+        subway:  { audio: sndSubway  },
+        truck:   { audio: sndTruck   },
+        traffic: { audio: sndTraffic },
+        // t4~t8 은 아직 오디오 없음
+      };
+
+      trackItems.forEach(li => {
+        li.addEventListener('click', () => {
+          const id = li.dataset.track;
+          const meta = tracks[id];
+          const isActive = li.classList.contains('active');
+
+          // 오디오 없는 트랙: 스타일 토글만
+          if (!meta || !meta.audio) {
+            li.classList.toggle('active');
+            return;
+          }
+
+          ensureAudioContext();
+
+          if (isActive && !meta.audio.paused) {
+            // 이미 켜져있다면 → 끄기
+            meta.audio.pause();
+            meta.audio.currentTime = 0;
+            li.classList.remove('active');
+          } else {
+            // 끊었다가 다시 누르면 → 다시 0부터 재생
+            meta.audio.currentTime = 0;
+            meta.audio.play();
+            li.classList.add('active');
+          }
+        });
+      });
+
+      // 초기에는 아무 것도 자동 재생 X, 필요하면 1번만 하이라이트
+      const first = document.querySelector('.track-item[data-track="subway"]');
+      if (first) first.classList.add('active');
+
+    })();
+  </script>
+</body>
+</html>
